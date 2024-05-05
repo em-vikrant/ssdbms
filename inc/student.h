@@ -1,37 +1,53 @@
 /* file		: student.h
  */
 
-#ifndef STUDENT_H
-#define STUDENT_H
+#ifndef _STUDENT_H_
+#define _STUDENT_H_
+
+#include <vector>
 
 
 class Student {
 	public:
-		Student(std::string, int, char, std::string);
+
+		Student(std::string name, char grade, std::string university);
+
+        ~Student() {
+            if (studentCount > 0)
+                studentCount--;
+        }
+
+        /* Utility. */
+        std::vector<char> getRaw();
+        void createFromRaw(const std::vector<char>& rawData);
 		
 		/* Setters. */
-		void setName(std::string sname);
-		void setRollNo(int srollNo);
-		void setGrade(char sgrade);
-		void setUniversity(std::string uni);
-		void setUniqueId(int uniqueId);
+		void setName(const std::string& sname);
+		void setRollNo(const int& srollNo);
+		void setGrade(const char& sgrade);
+		void setUniversity(const std::string& uni);
+		void setUniqueId(const std::string& uniqueId);
 		
 		/* Gettters. */
 		std::string getName() const;
 		int getRollNo() const;
 		char getGrade() const;
 		std::string getUniversity() const;
-		int getUniqueId() const;
+        std::string getUniqueId() const;
+        int getApplicationNumber() const { return applicationNumber; }
 		
 		/* Display student's data. */
 		void showData() const;
 
 	private:
-		mutable int studentId;
-		std::string name;
+        
+        static int studentCount;
+        int applicationNumber;
 		int rollNo;
 		char grade;
+		std::string name;
 		std::string university;
+        std::string uniqueId;
 };
 
 #endif

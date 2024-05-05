@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <fstream>
 #include <cstring>
+#include <sstream>
 #include "logger.h"
 #include "DBManager.h"
 
@@ -35,7 +36,7 @@ const char *fMode(int fileMode) {
 			mode = "r+";
 			break;
 		case APPEND:
-			mode = "a";
+			mode = "a+";
 			break;
 		case READ_WRITE_PLUS:
 			mode = "w+";
@@ -57,7 +58,7 @@ DB::DataBase::DataBase(std::string dbFile) {
 
 int DB::DataBase::init() {
 	int ret = DB::SUCCESS;
-	fp = fopen((const char *)dbFileName.c_str(), fMode(READ_WRITE_PLUS));
+	fp = fopen(dbFileName.c_str(), fMode(READ_WRITE_PLUS));
 	if(!fp) {
 		LOG("FAILED TO INITIALIZE DB\r\n");
 		ret = DB::OPERATION_FAIL;
@@ -71,41 +72,47 @@ int DB::DataBase::init() {
 	return ret;
 }
 
-int DB::DataBase::insertEntry(const Student& student) {
+int DB::DataBase::insertEntry(const std::vector<char>& dataVec) {
 	char block[maxRecSize];
 	int ret = DB::SUCCESS;
 
 	entryCount++;
-	dataForm df;
-	
-	df.uniqueId = entryCount;
-	df.entry1 = student.getGrade();
-	df.entry2 = student.getRollNo();
-	strncpy(df.entry3, student.getName().c_str(), sizeof(df.entry3));
-	strncpy(df.entry4, student.getUniversity().c_str(), sizeof(df.entry4));
 
-	memcpy(block, &df, sizeof(df));	// Copy student entry into block buffer.
-	
+    std::vector<char> dataFrame;
+
+    /* Create data frame. */
+    dataFrame.insert(dataFrame.end(), FRAME_HEADER.begin(), FRAME_HEADER.end());
+    dataFrame.insert(dataFrame.end(), dataVec.begin(), dataVec.end());
+    dataFrame.insert(dataFrame.end(), FRAME_FOOTER.begin(), FRAME_FOOTER.end());
+    
 	/* Insert entry into file. */
-	fp = fopen(dbFileName.c_str(), fMode(WRITE));	// Open file into write mode.
+	fp = fopen(dbFileName.c_str(), fMode(APPEND));	// Open file into append mode.
 	if(!fp) {
 		LOG("FAILED TO OPEN DB FILE\r\n");
 		ret = DB::OPERATION_FAIL;
 	}
-	else {
-		long int blockSize = sizeof(dataForm);
-		long int offset = sizeof(entryCount) + entryCount * blockSize;
-		fseek(fp, offset, SEEK_SET);
-		if(0 > fwrite(block, 1, blockSize, fp)) {
-			LOG("FAILED TO INSERT ENTRY INTO DB\r\n");
-			entryCount--;
-			ret = DB::OPERATION_FAIL;
-		}
-		else {
-			ret = entryCount;	// To return unique-id for the entry.
-		}
-		fclose(fp);
-	}
+    else {
+        /* Insert the entry in DB at end. */
+        fseek(fp, 0, SEEK_END);
+        if(0 > fwrite(dataFrame.data(), 1, dataFrame.size(), fp)) {
+            LOG("FAILED TO INSERT ENTRY INTO DB\r\n");
+            entryCount--;
+            ret = DB::OPERATION_FAIL;
+        }
+        else {
+            //LOG("INSERT ENTRY, DF --[ ");
+            //for (char c : dataFrame)
+            //    LOG("%c ", c);
+            //LOG("]\r\n");
+            /* Update the entry count on successful insertion. */
+            fseek(fp, 0, SEEK_SET);
+            if(0 > fwrite((const void *)&entryCount, 1, sizeof(entryCount), fp)) {
+                LOG("FAILED TO UPDATE THE ENTRY COUNT IN DB\r\n");
+                ret = DB::OPERATION_FAIL;
+            }
+        }
+        fclose(fp);
+    }
 	return ret;
 }
 
@@ -113,47 +120,79 @@ int DB::DataBase::deleteEntry(int uniqueId) {
 	return 0;
 }
 
-int DB::DataBase::readEntry(int uniqueId) {
-	dataForm df;
-	int blockSize = sizeof(dataForm);
-	int rBytes = 0;
-	int offset = 0;
-	bool entryFound = false;
-	int ret = DB::SUCCESS;
-	
-	fp = fopen(dbFileName.c_str(), fMode(READ));
-	if(!fp) {
-		LOG("FAIL TO READ FROM DB FILE\r\n");
-		ret = OPERATION_FAIL;
-	}
-	else {
-		offset = sizeof(entryCount);
-		fseek(fp, offset, SEEK_SET);	// Jumping through meta deta.
+std::vector<char> DB::DataBase::readEntry(const std::string& id) {
+    std::vector<char> buffer(150);
+    std::vector<char> data;
+    int rBytes = 0;
+    int offset = 0;
+    bool entryFound = false;
+    int ret = DB::SUCCESS;
 
-		while(fp) {
-			memset(&df, 0, blockSize);
-			rBytes = fread((void *)&df, 1, blockSize, fp);
-			if(0 > rBytes) {
-				break;
-			}
-			else if(df.uniqueId == uniqueId) {
-				entryFound = true;
-				break;	// Entry found so stop interating into file.
-			}
-		}
-		
-		/* Display entry when found. */
-		if(entryFound) {
-			st = new Student(getStringObj(df.entry3), df.entry2, df.entry1, getStringObj(df.entry4));
-			st->setUniqueId(df.uniqueId);
-			st->showData();
-			delete st;	// Free the memory when entry displayed.
-		}
-		else {
-			ret = OPERATION_FAIL;
-		}
-		fclose(fp);
-	}
-	return ret;
+    auto printBuffer = [&](std::vector<char>& buf) {
+        LOG(" %d, [ ", buf.size());
+        for (char ch : buf) {
+            LOG("%c:%02x ", ch, ch);
+        }
+        LOG("]\n");
+    };
+
+    fp = fopen(dbFileName.c_str(), fMode(READ));
+    if(!fp) {
+        std::ostringstream oss;
+        oss << "FAIL TO READ FROM DB FILE";
+        throw std::runtime_error(oss.str());
+    }
+    else {
+        offset = sizeof(entryCount);
+        memset(buffer.data(), 0, buffer.size());
+
+        while(fp) {
+            fseek(fp, offset, SEEK_SET);
+            rBytes = fread((void *)buffer.data(), 1, buffer.size(), fp);
+            if(0 >= rBytes) {
+                break;
+            }
+            else {
+                const std::string_view& fh = FRAME_HEADER;
+                const std::string_view& ff = FRAME_FOOTER;
+
+                while (buffer.size() > (FRAME_HEADER.size() + FRAME_FOOTER.size())) {
+                    auto headerPos = std::search(buffer.begin(), buffer.end(), fh.begin(), fh.end());
+                    auto footerPos = std::search(buffer.begin(), buffer.end(), ff.begin(), ff.end());
+
+                    // If frame header & footer are found
+                    if ((headerPos != buffer.end() && footerPos != buffer.end()) && headerPos < footerPos) {
+                        std::copy(headerPos + fh.size(), footerPos, std::back_inserter(data));
+
+                        if (id == StudentManager::getInstance().parseStudentData(data)->getUniqueId()) {
+                            entryFound = true;
+                            break;
+                        }
+
+                        /* Clear the complete frame. */
+                        buffer.erase(buffer.begin(), footerPos + ff.size());
+
+                        /* Clear the data buffer. */
+                        data.clear();
+                    }
+                    else { // if no frame found then break and read further data.
+                        break;
+                    }
+                }
+            }
+
+            if (entryFound)
+                break;
+
+            /* To read next bytes. */
+            offset += rBytes;
+        }
+
+        if(!entryFound) {
+            ret = OPERATION_FAIL;
+        }
+        fclose(fp);
+    }
+    return data;
 }
 

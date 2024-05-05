@@ -1,12 +1,21 @@
 /* file		DBManager.h
-*/
+ * Header file for the Data Base Manager class.
+ */
 
-#include "student.h"
+#include <vector>
+#include <string_view>
+#include "Student.h"
+#include "StudentManager.h"
+
 
 #define MAX_RECORDS_SIZE	200
 #define MAX_RECORDS_COUNT	100
 
+
 namespace DB {
+
+    constexpr std::string_view FRAME_HEADER = "**FH**";
+    constexpr std::string_view FRAME_FOOTER = "**FF**";
 
 	enum dbOperatonReturns {
 		SUCCESS			= 0,
@@ -16,28 +25,16 @@ namespace DB {
 		TIMEOUT_ERR		= -200
 	};
 
-	struct dataForm {
-		int uniqueId;
-
-		char entry1;
-		int entry2;
-		char entry3[50];
-		char entry4[100];	
-	};
-
 	class DataBase {
 		public:
 			DataBase(std::string);
 			int init();
-			int insertEntry(const Student& student);
+			int insertEntry(const std::vector<char>& dataVec);
 			int deleteEntry(int entryNumber);
-			int readEntry(int uniqueId);
+            std::vector<char> readEntry(const std::string& id);
 
 		private:
 			std::string dbFileName;
-			Student *st = nullptr;
 			int entryCount;
 	};
-	
-	int mapStdDataWithEntry(const dataForm& df, Student& student);
 };
