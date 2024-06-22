@@ -17,7 +17,7 @@ namespace DB {
     constexpr std::string_view FRAME_HEADER = "**FH**";
     constexpr std::string_view FRAME_FOOTER = "**FF**";
 
-	enum dbOperatonReturns {
+	enum opStatus_t {
 		SUCCESS			= 0,
 		OPERATION_FAIL	= -1,
 		INVALID_SIZE	= -2,
@@ -29,7 +29,8 @@ namespace DB {
 		public:
 			DataBase(std::string);
 			int init();
-			int insertEntry(const std::vector<char>& dataVec);
+			//int insertEntry(const std::vector<char>& dataVec);
+            DB::opStatus_t insertEntry(const std::shared_ptr<Student> student);
 			int deleteEntry(int entryNumber);
             std::vector<char> readEntry(const std::string& id);
 

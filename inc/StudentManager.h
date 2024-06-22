@@ -20,7 +20,12 @@ class StudentManager {
         std::shared_ptr<Student> createStudent(std::string, char, std::string);
         std::shared_ptr<Student> parseStudentData(const std::vector<char>& studentData);
 
+        std::vector<char> getRawDataForStudent(const std::string& studentId);
+
         void printStudentRecords();
+
+        std::vector<std::string> getStudentIdList();
+        std::vector<std::shared_ptr<Student>> getStudentList();
 
     private:
         static StudentManager m_Instance;

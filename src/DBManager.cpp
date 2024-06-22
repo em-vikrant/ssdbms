@@ -72,13 +72,14 @@ int DB::DataBase::init() {
 	return ret;
 }
 
-int DB::DataBase::insertEntry(const std::vector<char>& dataVec) {
+DB::opStatus_t DB::DataBase::insertEntry(const std::shared_ptr<Student> student) {
 	char block[maxRecSize];
-	int ret = DB::SUCCESS;
+    DB::opStatus_t ret = DB::SUCCESS;
 
 	entryCount++;
 
     std::vector<char> dataFrame;
+    std::vector<char> dataVec = student->getRaw(); // Get the raw data stream for the student
 
     /* Create data frame. */
     dataFrame.insert(dataFrame.end(), FRAME_HEADER.begin(), FRAME_HEADER.end());

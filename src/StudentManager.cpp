@@ -29,6 +29,7 @@ StudentManager::createStudent(std::string name, char grade, std::string universi
         std::shared_ptr<Student> ps = value;
         if (ps->getName() == name && ps->getGrade() == grade && ps->getUniversity() == university) {
             pStudent = ps;
+            break;
         }
     }
 
@@ -101,12 +102,33 @@ std::shared_ptr<Student> StudentManager::parseStudentData(const std::vector<char
     return pStudent;
 }
 
+std::vector<char> StudentManager::getRawDataForStudent(const std::string& studentId) {
+    // TODO: Shifting this method from Student to here.
+    return std::vector<char>(0);
+}
+
 void StudentManager::printStudentRecords() {
     LOG("STUDENT MANAGER, NUMBER OF RECORDS, %d\n", studentMap.size());
     for (auto pStudent : studentMap) {
         pStudent.second->showData();
         LOG("\n");
     }
+}
+
+std::vector<std::string> StudentManager::getStudentIdList() {
+    std::vector<std::string> studentIdVec; 
+    for (auto [key, value] : studentMap) {
+        studentIdVec.push_back(key);
+    }
+    return studentIdVec;
+}
+
+std::vector<std::shared_ptr<Student>> StudentManager::getStudentList() {
+    std::vector<std::shared_ptr<Student>> studentVec; 
+    for (auto [key, value] : studentMap) {
+        studentVec.push_back(value);
+    }
+    return studentVec;
 }
 
 
