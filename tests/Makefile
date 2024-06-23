@@ -39,4 +39,8 @@ compile:
 		echo "COMPILE: $$dir ...COMPLETE"; \
 	done
 	@echo "COMPILING TESTS ...COMPLETE"
+	@echo "============================"
+	@echo "TESTS BUILD PATH : $(BIN_PATH)/$(PROJECT)"
+	@echo "============================"
+
 
