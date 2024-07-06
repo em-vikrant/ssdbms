@@ -39,6 +39,7 @@ FLAGS = -std=c++17
 # ----------------------
 
 FILES := Student StudentManager DBManager Display
+GUI_FILES := Page NoteBook Board
 
 .PHONY: clean_lib $(FILES) all tests
 
@@ -59,11 +60,18 @@ all:
 source: $(FILES) tests
 	@$(CXX) $(FLAGS) -MMD -MP $(LIB_PATH)/* main.cpp -I$(INC_PATH) -I$(SFML_INC_PATH) -o $(BUILD_PATH)/$(APP) -L$(SFML_LIB_PATH) $(SFML_LIBS)
 
-$(FILES):
+$(FILES): $(GUI_FILES)
 	@echo "COMPILE: $@"
 	@$(CXX) $(FLAGS) -c $(SRC_PATH)/$@.cpp -I$(INC_PATH) -I$(SFML_INC_PATH) -o $(LIB_PATH)/$@.o -L$(SFML_LIB_PATH) $(LDLIBS)
 	@ar rcs $(LIB_PATH)/lib$@.a $(LIB_PATH)/$@.o
 	@rm $(LIB_PATH)/$@.o
+	@echo "COMPILE: $@ ...COMPLETE"
+
+$(GUI_FILES):
+	@echo "COMPILE: $@"
+	@$(CXX) $(FLAGS) -c $(SRC_PATH)/gui/$@.cpp -I$(INC_PATH) -I$(SFML_INC_PATH) -o $(LIB_PATH)/$@.o -L$(SFML_LIB_PATH) $(LDLIBS)
+	#@ar rcs $(LIB_PATH)/lib$@.a $(LIB_PATH)/$@.o
+	#@rm $(LIB_PATH)/$@.o
 	@echo "COMPILE: $@ ...COMPLETE"
 
 tests:

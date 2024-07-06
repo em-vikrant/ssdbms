@@ -3,17 +3,45 @@
  */
 
 /* Library includes. */
-#include <iostream>
-#include <set>
-#include <cstring>
+#include <memory>
 #include "DBManager.h"
 #include "Student.h"
 #include "StudentManager.h"
 #include "Display.h"
 #include "logger.h"
+#include "gui/NoteBook.h"
+#include "gui/Board.h"
 
 
 int main() {
+#if 1
+    Board board({800, 600}, "MyBoard");
+    NoteBook notebook;
+
+    notebook.addPage(std::make_shared<Page>("Page1", sf::Color::Green, true));
+
+    for (auto wpPage : notebook.getPages()) {
+        if (!wpPage.expired()) {
+            auto spPage = wpPage.lock();
+            board.paste(spPage);
+            break;
+        }
+    }
+
+    while (true) {
+        for (auto wpPage : notebook.getPages()) {
+            if (!wpPage.expired()) {
+                auto spPage = wpPage.lock();
+                if (spPage->getStatus() == false)
+                    break;
+            }
+        }
+
+        board.show();
+    }
+
+    
+#else
     //TODO: Making a interactive gui to managee student data
     sf::RenderWindow window;
     sf::Vector2f dimensions = {800, 600};
@@ -41,6 +69,7 @@ int main() {
         window.clear(sf::Color::White);
         window.display();
     }
+#endif
 }
 
 

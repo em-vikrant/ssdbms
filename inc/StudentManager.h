@@ -28,7 +28,6 @@ class StudentManager {
         std::vector<std::shared_ptr<Student>> getStudentList();
 
     private:
-        static StudentManager m_Instance;
         std::map<std::string, std::shared_ptr<Student>> studentMap;
 
         // Singleton class: Non-instanciation, non-copyable
